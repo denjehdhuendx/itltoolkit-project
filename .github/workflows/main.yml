@@ -1,7 +1,15 @@
-
-name: Build ITLT for Windows (Auto Trigger)
+name: Build ITLT for Windows (Manual & Auto)
 
 on:
+  # 手动触发（可选输入版本号）
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version for packaging (e.g. 1.0.0)'
+        required: true
+        default: 'dev'
+
+  # 自动触发：推送 v* 标签
   push:
     tags:
       - 'v*'  # 触发条件：推送 v1.0.0 标签
@@ -30,11 +38,14 @@ jobs:
           pip install pyinstaller pyqt5
           pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
 
-      - name: Extract version from main.pro
-        id: version
+      - name: Determine version
         run: |
-          $version = Get-Content main.pro | Select-String '^VERSION *=' | ForEach-Object { $_ -replace '.*= *', '' } | ForEach-Object { $_.Trim() }
-          echo "VERSION=$version" >> $env:GITHUB_ENV
+          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
+            $ver = "${{ github.event.inputs.version }}"
+          } else {
+            $ver = Get-Content main.pro | Select-String '^VERSION *=' | ForEach-Object { $_ -replace '.*= *', '' } | ForEach-Object { $_.Trim() }
+          }
+          echo "VERSION=$ver" >> $env:GITHUB_ENV
 
       - name: Build with PyInstaller
         run: |
@@ -55,7 +66,7 @@ jobs:
         run: |
           $version = $env:VERSION
           if (!$version) {
-            throw "Version not found in main.pro!"
+            throw "Version not found!"
           }
           $newName = "itlt-$version"
           Move-Item "dist\itlt.exe" "$newName\itlt.exe"
