@@ -1,4 +1,5 @@
-name: Build ITLT for Windows (No Release)
+
+name: Build ITLT for Windows (Auto Trigger)
 
 on:
   push:
