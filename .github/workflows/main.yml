@@ -1,84 +1,60 @@
-name: Build ITLT for Windows (Manual & Auto)
+name: Build ITLT
 
 on:
-  # 手动触发（可选输入版本号）
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version for packaging (e.g. 1.0.0)'
+        description: 'The version of the package'
         required: true
-        default: 'dev'
-
-  # 自动触发：推送 v* 标签
-  push:
-    tags:
-      - 'v*'  # 触发条件：推送 v1.0.0 标签
+        default: '1.0.0'
 
 jobs:
-  build-windows:
+  build:
     runs-on: windows-latest
+    strategy:
+      matrix:
+        python-version: [3.8, 3.9, 3.10]
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
 
-      - name: Create and activate virtual environment
-        run: |
-          python -m venv .venv
-          .venv\Scripts\activate
-          pip install --upgrade pip
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyqt5 pyinstaller
+        pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple
 
-      - name: Install dependencies with custom QFluentWidgets
-        run: |
-          .venv\Scripts\activate
-          pip install pyinstaller pyqt5
-          pip install "PyQt-Fluent-Widgets[full]" -i https://pypi.org/simple/
+    - name: Set up virtual environment
+      run: python -m venv .venv
 
-      - name: Determine version
-        run: |
-          if ($env:GITHUB_EVENT_NAME -eq "workflow_dispatch") {
-            $ver = "${{ github.event.inputs.version }}"
-          } else {
-            $ver = Get-Content main.pro | Select-String '^VERSION *=' | ForEach-Object { $_ -replace '.*= *', '' } | ForEach-Object { $_.Trim() }
-          }
-          echo "VERSION=$ver" >> $env:GITHUB_ENV
+    - name: Activate virtual environment
+      run: |
+        source .venv/bin/activate
+        pip install -r requirements.txt
 
-      - name: Build with PyInstaller
-        run: |
-          .venv\Scripts\activate
-          pyinstaller ^
-            --name=itlt ^
-            --windowed ^
-            --icon=logo.ico ^  # ✅ 直接使用 .ico 文件
-            --onefile ^
-            --add-data "pages;pages" ^
-            --add-data "components;components" ^
-            --add-data "common;common" ^
-            --add-data "source;source" ^
-            --clean ^
-            main.py
+    - name: Build package
+      run: pyinstaller --windowed main.py -i icon.png --dist dist --onefile itlt-${{ inputs.version }}.zip
 
-      - name: Rename dist folder and zip
-        run: |
-          $version = $env:VERSION
-          if (!$version) {
-            throw "Version not found!"
-          }
-          $newName = "itlt-$version"
-          Move-Item "dist\itlt.exe" "$newName\itlt.exe"
-          Copy-Item -Recurse "pages" "$newName\pages"
-          Copy-Item -Recurse "components" "$newName\components"
-          Copy-Item -Recurse "common" "$newName\common"
-          Copy-Item -Recurse "source" "$newName\source"
-          Compress-Archive -Path "$newName" -DestinationPath "$newName.zip" -Force
+    - name: Create Release
+      uses: actions/create-release@v1
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ inputs.version }}
+        draft: false
+        prerelease: false
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: itlt-${{ env.VERSION }}
-          path: itlt-${{ env.VERSION }}.zip
-          retention-days: 7
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_path: ./dist/itlt-${{ inputs.version }}.zip
+        asset_name: itlt-${{ inputs.version }}.zip
+        asset_content_type: application/zip
