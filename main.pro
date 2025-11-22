@@ -3,4 +3,5 @@ SOURCE += view/pages/main_window.py \
         view/pages/launcher_interface.py
         view/pages/about_interface.py \
         view/pages/jiyuinterface.py \
-      
+
+VERSION = 0.6.2

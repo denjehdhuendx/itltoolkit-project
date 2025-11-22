@@ -7,16 +7,9 @@ from qfluentwidgets import *
 class AboutInterface(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setFixedSize(336, 400)
+        self.initUI()
+       
 
-        self.vBoxLayout = QVBoxLayout(self)
-        self.title = QLabel('关于', self)
-        self.vBoxLayout.addWidget(self.title)
-        self.__initWidget()
-
-    def __initWidget(self):
-            
-        self.setObjectName('aboutInterface')    
-        self.vBoxLayout.setContentsMargins(10, 10, 10, 10)
-        self.vBoxLayout.setSpacing(10)
-
+    def initUI(self):
+        """初始化用户界面，使用自适应布局"""
+        self.setObjectName('aboutInterface')

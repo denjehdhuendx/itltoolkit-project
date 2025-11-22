@@ -8,16 +8,10 @@ from qfluentwidgets import *
 class JiyuInterface(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent=parent)
-        self.setFixedSize(336, 400)
-
-        self.vBoxLayout = QVBoxLayout(self)
-        self.title = QLabel('极域助手', self)
-        self.vBoxLayout.addWidget(self.title)
+        self.initUI()
         
-        self.__initWidget()
 
-    def __initWidget(self):
-        self.setObjectName('jiyuinterface')
-        
-        self.vBoxLayout.setContentsMargins(10, 10, 10, 10)
-        self.vBoxLayout.setSpacing(10)
+    def initUI(self):
+        """初始化用户界面，使用自适应布局"""
+        self.setObjectName('jiyuInterface')
+
