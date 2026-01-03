@@ -1,0 +1,45 @@
+name: Build with Nuitka
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        arch: [x86, arm64]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+        architecture: ${{ matrix.arch }}
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install nuitka
+
+    - name: Build executable with Nuitka
+      run: |
+        python -m nuitka --standalone --windows-disable-console --show-scons --output-dir=dist --output-filename=ITLToolkit-${{ matrix.arch }} main.py
+
+    - name: Check build output
+      run: |
+        ls -la dist
+        ls -la dist/main.dist
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ITLToolkit-${{ matrix.arch }}
+        path: dist/main.dist/
